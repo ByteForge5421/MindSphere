@@ -1,4 +1,7 @@
 const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
@@ -6,6 +9,8 @@ const path = require('path');
 const multer = require('multer');
 const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
+const { initializeChatSocket } = require('./socket/chatSocket');
+const { startAnalyticsJob } = require('./jobs/analyticsJob');
 
 // Load environment variables
 dotenv.config();
@@ -89,6 +94,7 @@ app.use("/api/plants",require('./routes/plants'));
 const groupRoutes = require("./routes/group.js");
 app.use("/api", groupRoutes);
 app.use('/api/mood', require('./routes/geminiMood'));
+app.use('/api/messages', require('./routes/messages'));
 
 // Create uploads directory if it doesn't exist
 const fs = require('fs');
@@ -100,6 +106,10 @@ if (!fs.existsSync('uploads')) {
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log('MongoDB connected');
+    
+    // Start analytics background job
+    startAnalyticsJob();
+    console.log('Analytics background job started');
     
     // Optional: Run seed script if specified
     if (process.env.SEED_DATA === 'true') {
@@ -118,11 +128,74 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Something went wrong!' });
 });
 
-// Start server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+const errorHandler = require("./middleware/errorHandler");
+app.use(errorHandler);
+
+// --- START: SOCKET.IO SETUP ---
+
+// Create HTTP server from Express app
+const server = http.createServer(app);
+
+// Initialize Socket.IO with CORS configuration
+const io = new Server(server, {
+  cors: {
+    origin: allowedOrigins,
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type"],
+    credentials: true
+  }
 });
 
-const errorHandler = require("./middleware/errorHandler");
-app.use(errorHandler);  
+// --- START: SOCKET.IO AUTHENTICATION MIDDLEWARE ---
+
+/**
+ * Socket.IO Authentication Middleware
+ * Verifies JWT token during connection handshake
+ * Rejects connection if token is missing or invalid
+ */
+io.use(async (socket, next) => {
+  try {
+    const token = socket.handshake.auth?.token;
+
+    if (!token) {
+      return next(new Error('Authentication error: token missing'));
+    }
+
+    // Verify JWT token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Extract user ID from token - support both formats (ROBUSTNESS)
+    // Format 1: { user: { id: '...' } }
+    // Format 2: { id: '...' }
+    const userId = decoded.user?.id || decoded.id;
+
+    if (!userId) {
+      return next(new Error('Authentication error: user ID not found in token'));
+    }
+
+    // Attach user to socket for later use in handlers
+    socket.user = {
+      id: userId
+    };
+
+    console.log(`[Socket] User ${socket.user.id} authenticated`);
+    next();
+  } catch (err) {
+    console.error('[Socket] Authentication error:', err.message);
+    next(new Error('Authentication error: invalid token'));
+  }
+});
+
+// --- END: SOCKET.IO AUTHENTICATION MIDDLEWARE ---
+
+// Initialize chat socket handlers
+initializeChatSocket(io);
+
+// --- END: SOCKET.IO SETUP ---
+
+// Start server
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`WebSocket server ready for real-time messaging`);
+});  
