@@ -1,13 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
+const { trackEventMiddleware } = require('../middleware/eventTracker');
 const CheckIn = require('../models/CheckIn');
 const User = require('../models/User');
+const { trackEvent } = require('../services/eventService');
 
 // @route   POST api/mood/check-in
 // @desc    Save mood check-in (bina AI analysis ke)
 // @access  Private
-router.post('/check-in', auth, async (req, res) => {
+router.post('/check-in', auth, trackEventMiddleware('mood_logged'), async (req, res) => {
   try {
     // Ab frontend se sirf ye data aa raha hai
     const { 
@@ -58,7 +60,11 @@ router.post('/check-in', auth, async (req, res) => {
     
     await user.save();
 
-    
+    // Track analytics event for mood logged
+    await trackEvent(req.user.id.toString(), 'mood_logged', {
+      mood: moodScore
+    });
+
     res.json({
       checkIn,
       streak: user.streak,

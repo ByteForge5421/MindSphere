@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";
+import { getSocket } from "@/services/socket";
 import { formatDistanceToNow } from "date-fns";
 import { Send, Users, Loader2, UserPlus, Plus, RefreshCw } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -29,7 +30,6 @@ interface Group {
   description: string;
   members: Array<Member | string>;
   category: string;
-  messages: Message[];
 }
 
 interface Message {
@@ -63,6 +63,9 @@ export function CommunityChat() {
   const [newGroup, setNewGroup] = useState({ name: "", description: "", category: "" });
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const { user } = useAuth();
   const { toast } = useToast();
@@ -82,6 +85,62 @@ export function CommunityChat() {
     scrollToBottom();
   }, [messages]);
 
+  // Join community room when selected group changes
+  useEffect(() => {
+    if (!selectedGroup) return;
+
+    const socket = getSocket();
+    if (socket && socket.connected) {
+      socket.emit('community:join', {
+        communityId: selectedGroup
+      });
+    }
+  }, [selectedGroup]);
+
+  // Setup socket event listeners
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    // Listen for new messages
+    const handleNewMessage = (newMessage: Message) => {
+      setMessages(prev => [...prev, newMessage]);
+    };
+
+    // Listen for presence updates
+    const handlePresenceUpdate = (data: { onlineUsers: string[] }) => {
+      setOnlineUsers(data.onlineUsers || []);
+    };
+
+    // Listen for typing indicators
+    const handleUserTyping = (data: { userId: string; communityId: string }) => {
+      setTypingUsers(prev => {
+        if (!prev.includes(data.userId)) {
+          return [...prev, data.userId];
+        }
+        return prev;
+      });
+    };
+
+    const handleUserStoppedTyping = (data: { userId: string; communityId: string }) => {
+      setTypingUsers(prev => prev.filter(id => id !== data.userId));
+    };
+
+    // Register listeners
+    socket.on('message:new', handleNewMessage);
+    socket.on('presence:users', handlePresenceUpdate);
+    socket.on('message:typing', handleUserTyping);
+    socket.on('message:stop_typing', handleUserStoppedTyping);
+
+    // Cleanup on unmount
+    return () => {
+      socket.off('message:new', handleNewMessage);
+      socket.off('presence:users', handlePresenceUpdate);
+      socket.off('message:typing', handleUserTyping);
+      socket.off('message:stop_typing', handleUserStoppedTyping);
+    };
+  }, []);
+
   const fetchGroups = async () => {
     try {
       setLoading(true);
@@ -100,10 +159,10 @@ export function CommunityChat() {
   const fetchGroupDetails = async (groupId: string) => {
     try {
       setLoading(true);
-      const response = await api.get(`/community/${groupId}`);
-      setMessages(response.data.messages || []);
+      const response = await api.get(`/messages/${groupId}`);
+      setMessages(response.data || []);
     } catch (error) {
-      console.error('Error fetching group details:', error);
+      console.error('Error fetching messages:', error);
     } finally {
       setLoading(false);
     }
@@ -112,15 +171,87 @@ export function CommunityChat() {
   const sendMessage = async () => {
     if (!message.trim() || !selectedGroup) return;
     setSendingMessage(true);
+    
+    const socket = getSocket();
+    const messageContent = message.trim();
+    
     try {
-      const response = await api.post(`/community/${selectedGroup}/message`, { content: message });
-      setMessages(prev => [...prev, response.data]);
-      setMessage("");
+      if (socket && socket.connected) {
+        // Optimistically append message for sender
+        setMessages(prev => [
+          ...prev,
+          {
+            _id: Date.now().toString(),
+            content: messageContent,
+            createdAt: new Date().toISOString(),
+            user: {
+              _id: user?.id || "",
+              name: user?.name || ""
+            }
+          }
+        ]);
+
+        // Use Socket.IO for real-time delivery
+        socket.emit('message:send', {
+          communityId: selectedGroup,
+          content: messageContent
+        }, (acknowledgment?: any) => {
+          if (acknowledgment?.error) {
+            console.error('Socket emit error:', acknowledgment.error);
+            toast({
+              title: "Error",
+              description: "Failed to send message",
+              variant: "destructive",
+            });
+          }
+        });
+        
+        // Stop typing indicator
+        socket.emit('message:stop_typing', {
+          communityId: selectedGroup
+        });
+
+        setMessage("");
+      } else {
+        // Fallback to REST if socket not available
+        const response = await api.post(`/community/${selectedGroup}/message`, { content: messageContent });
+        setMessages(prev => [...prev, response.data]);
+        setMessage("");
+      }
     } catch (error) {
       console.error('Error sending message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send message",
+        variant: "destructive",
+      });
     } finally {
       setSendingMessage(false);
     }
+  };
+
+  const handleMessageInput = (value: string) => {
+    setMessage(value);
+    
+    const socket = getSocket();
+    if (!socket || !selectedGroup) return;
+
+    // Emit typing indicator
+    socket.emit('message:typing', {
+      communityId: selectedGroup
+    });
+
+    // Clear previous timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Set new timeout to stop typing after 1 second of inactivity
+    typingTimeoutRef.current = setTimeout(() => {
+      socket.emit('message:stop_typing', {
+        communityId: selectedGroup
+      });
+    }, 1000);
   };
 
   const createGroup = async () => {
@@ -150,6 +281,16 @@ const joinGroup = async (groupId: string) => {
     setGroups(prev =>
       prev.map(g => (g._id === groupId ? response.data : g))
     );
+    // Fetch messages from new endpoint
+    const messagesResponse = await api.get(`/messages/${groupId}`);
+    setMessages(messagesResponse.data || []);
+    
+    // Emit socket event to join the room and get presence info
+    const socket = getSocket();
+    if (socket && socket.connected) {
+      socket.emit('community:join', { communityId: groupId });
+    }
+    
     toast({
       title: "Joined Group",
       description: "You have successfully joined the group",
@@ -164,7 +305,16 @@ const joinGroup = async (groupId: string) => {
         setGroups(prev =>
           prev.map(g => (g._id === groupId ? res.data : g))
         );
-        setMessages(res.data.messages || []);
+        // Fetch messages from new endpoint
+        const messagesResponse = await api.get(`/messages/${groupId}`);
+        setMessages(messagesResponse.data || []);
+        
+        // Emit socket event to join the room
+        const socket = getSocket();
+        if (socket && socket.connected) {
+          socket.emit('community:join', { communityId: groupId });
+        }
+        
         toast({
           title: "Already Joined",
           description: "You are already a member of this group.",
@@ -380,11 +530,19 @@ const joinGroup = async (groupId: string) => {
                 
                 <div className="p-3 border-t">
                   {isGroupMember(currentGroup) ? (
-                    <div className="flex space-x-2">
-                      <Input placeholder="Type your message..." value={message} onChange={(e) => setMessage(e.target.value)} onKeyDown={handleKeyPress} disabled={sendingMessage} className="flex-1" />
-                      <Button onClick={sendMessage} disabled={!message.trim() || sendingMessage} className="bg-wellness-green hover:bg-wellness-green-dark text-white">
-                        {sendingMessage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                      </Button>
+                    <div className="flex flex-col space-y-2">
+                      <Input placeholder="Type your message..." value={message} onChange={(e) => handleMessageInput(e.target.value)} onKeyDown={handleKeyPress} disabled={sendingMessage} className="flex-1" />
+                      {typingUsers.length > 0 && (
+                        <div className="text-xs text-muted-foreground">
+                          {typingUsers.join(", ")} {typingUsers.length === 1 ? "is" : "are"} typing...
+                        </div>
+                      )}
+                      <div className="flex space-x-2">
+                        <Button onClick={sendMessage} disabled={!message.trim() || sendingMessage} className="bg-wellness-green hover:bg-wellness-green-dark text-white flex-1">
+                          {sendingMessage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                          Send
+                        </Button>
+                      </div>
                     </div>
                   ) : (
                     <div className="text-center text-sm text-muted-foreground p-2">
