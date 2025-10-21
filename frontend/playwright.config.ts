@@ -6,6 +6,7 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:8081',
     headless: true,
+    storageState: 'playwright/.auth/user.json',
   },
 
   webServer: {
@@ -16,8 +17,14 @@ export default defineConfig({
 
   projects: [
     {
+      name: 'setup',
+      testMatch: '**/auth.setup.ts',
+      use: { browserName: 'chromium' },
+    },
+    {
       name: 'chromium',
       use: { browserName: 'chromium' },
+      dependencies: ['setup'],
     },
   ],
 });
