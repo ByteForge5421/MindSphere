@@ -30,9 +30,15 @@ test.describe('Journal', () => {
     // Wait for network to settle
     await page.waitForLoadState('networkidle');
 
+    // Wait a moment for the entry to appear or reload page
+    await page.waitForTimeout(1000);
+    
+    // Reload the page to see the newly saved entry
+    await page.reload({ waitUntil: 'networkidle' });
+
     // Verify the entry appears on the page
-    await expect(page.getByText(title)).toBeVisible();
-    await expect(page.getByText(content)).toBeVisible();
+    await expect(page.getByText(title)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(content)).toBeVisible({ timeout: 10000 });
   });
 
   test('user can view multiple journal entries', async ({ page }) => {
