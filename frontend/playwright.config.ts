@@ -4,20 +4,23 @@ export default defineConfig({
   testDir: './e2e',
 
   use: {
-    baseURL: 'http://localhost:8081',
+    baseURL: 'http://localhost:8080',
     headless: true,
   },
 
   webServer: {
     command: 'npm run dev',
-    url: 'http://localhost:8081',
+    url: 'http://localhost:8080',
     reuseExistingServer: !process.env.CI,
+    cwd: '.',
   },
 
   projects: [
     {
       name: 'chromium',
-      use: { browserName: 'chromium' },
+      use: {
+        browserName: 'chromium',
+      },
     },
   ],
 });
