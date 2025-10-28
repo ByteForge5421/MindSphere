@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { ensureAuthenticated } from './auth-helper';
+import { JournalPage } from './pages/JournalPage';
 
 test.describe('Journal', () => {
   test.beforeEach(async ({ page }) => {
@@ -8,86 +9,50 @@ test.describe('Journal', () => {
   });
 
   test('user can create a journal entry', async ({ page }) => {
+    const journalPage = new JournalPage(page);
     const title = `Journal Entry ${Date.now()}`;
     const content = `Playwright journal test - ${Date.now()}`;
 
-    // Verify we're on the journal page
-    await expect(page).toHaveURL(/.*journal/);
-
-    // Fill in title
-    const titleInput = page.getByPlaceholder('Entry Title');
-    await expect(titleInput).toBeVisible();
-    await titleInput.fill(title);
-
-    // Fill in content
-    const contentTextarea = page.getByPlaceholder(/What's on your mind/);
-    await expect(contentTextarea).toBeVisible();
-    await contentTextarea.fill(content);
-
-    // Click the Save Entry button
-    await page.getByRole('button', { name: /Save Entry/i }).click();
-
-    // Wait for network to settle
-    await page.waitForLoadState('networkidle');
-
-    // Wait a moment for the entry to appear or reload page
-    await page.waitForTimeout(1000);
-    
-    // Reload the page to see the newly saved entry
-    await page.reload({ waitUntil: 'networkidle' });
+    await journalPage.verifyOnJournalPage();
+    await journalPage.submitEntryWithData(title, content);
 
     // Verify the entry appears on the page
-    await expect(page.getByText(title)).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText(content)).toBeVisible({ timeout: 10000 });
+    await journalPage.verifyEntryDisplayed(title, content);
   });
 
   test('user can view multiple journal entries', async ({ page }) => {
-    // Verify we're on the journal page
-    await expect(page).toHaveURL(/.*journal/);
+    const journalPage = new JournalPage(page);
 
-    // Verify the journal form is visible
-    const titleInput = page.getByPlaceholder('Entry Title');
-    await expect(titleInput).toBeVisible();
+    await journalPage.verifyOnJournalPage();
+    await journalPage.verifyFormElementsVisible();
   });
 
   test('journal textarea is cleared after saving', async ({ page }) => {
+    const journalPage = new JournalPage(page);
     const title = `Entry ${Date.now()}`;
     const content = `Test content ${Date.now()}`;
 
-    // Fill and submit form
-    const titleInput = page.getByPlaceholder('Entry Title');
-    const contentTextarea = page.getByPlaceholder(/What's on your mind/);
-    
-    await titleInput.fill(title);
-    await contentTextarea.fill(content);
-
-    await page.getByRole('button', { name: /Save Entry/i }).click();
-
-    // Wait for network to settle
+    await journalPage.fillEntryForm(title, content);
+    await journalPage.clickSave();
     await page.waitForLoadState('networkidle');
 
-    // Verify textarea is cleared
-    await expect(contentTextarea).toHaveValue('');
-    // Also verify title is cleared
-    await expect(titleInput).toHaveValue('');
+    // Verify fields are cleared
+    await journalPage.verifyInputCleared();
   });
 
   test('user cannot save empty journal entry', async ({ page }) => {
-    // Get the form fields
-    const titleInput = page.getByPlaceholder('Entry Title');
-    const contentTextarea = page.getByPlaceholder(/What's on your mind/);
-    const saveButton = page.getByRole('button', { name: /Save Entry/i });
+    const journalPage = new JournalPage(page);
 
     // Verify button is disabled when both fields are empty
-    await expect(saveButton).toBeDisabled();
+    await expect(journalPage.getSaveButton()).toBeDisabled();
 
     // Fill only title, button should still be disabled (content is empty)
-    await titleInput.fill('Only Title');
-    await expect(saveButton).toBeDisabled();
+    await journalPage.fillTitle('Only Title');
+    await expect(journalPage.getSaveButton()).toBeDisabled();
 
     // Fill only content, button should still be disabled (title is empty)
-    await titleInput.fill('');
-    await contentTextarea.fill('Only Content');
-    await expect(saveButton).toBeDisabled();
+    await journalPage.fillTitle('');
+    await journalPage.fillContent('Only Content');
+    await expect(journalPage.getSaveButton()).toBeDisabled();
   });
 });
