@@ -72,6 +72,14 @@ jobs:
       - name: Run Lighthouse CI
         run: npm run lhci
 
+      - name: Build frontend
+        run: npm run build
+        working-directory: frontend
+
+      - name: Run bundle size check
+        run: npm run bundlewatch
+        working-directory: frontend
+
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
         if: always()
