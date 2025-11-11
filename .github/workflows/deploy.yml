@@ -50,11 +50,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy to staging
+      - name: Deploy to Netlify Staging
         run: |
-          echo "Deploying to staging environment"
-          # Replace this with actual deployment command
-          # Example: railway up --service staging
+          curl -X POST ${{ secrets.NETLIFY_STAGING_DEPLOY_HOOK }}
 
   smoke-tests:
     needs: deploy-staging
@@ -68,15 +66,13 @@ jobs:
 
       - name: Run smoke tests against staging
         run: |
-          E2E_BASE_URL=https://staging.yourdomain.com npx playwright test e2e/smoke.spec.ts
+          E2E_BASE_URL=https://staging.yoursite.netlify.app npx playwright test e2e/smoke.spec.ts
 
   deploy-production:
     needs: smoke-tests
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy to production
+      - name: Deploy to Netlify Production
         run: |
-          echo "Deploying to production"
-          # Replace with real deployment command
-          # Example: railway up --service production
+          curl -X POST ${{ secrets.NETLIFY_PROD_DEPLOY_HOOK }}
