@@ -17,6 +17,10 @@ jobs:
 
     env:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      MONGO_URI: mongodb://localhost:27017/mindsphere
+      JWT_SECRET: test-secret-key
+      NODE_ENV: test
+      PORT: 5000
 
     steps:
       - uses: actions/checkout@v4
@@ -34,6 +38,19 @@ jobs:
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
+
+      - name: Wait for MongoDB to be ready
+        run: |
+          for i in {1..30}; do
+            if mongosh --eval "db.adminCommand('ping')" mongodb://localhost:27017 > /dev/null 2>&1; then
+              echo "MongoDB is ready!"
+              exit 0
+            fi
+            echo "Waiting for MongoDB... ($i/30)"
+            sleep 1
+          done
+          echo "MongoDB failed to start!"
+          exit 1
 
       - name: Start backend server
         run: |
