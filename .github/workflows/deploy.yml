@@ -37,7 +37,18 @@ jobs:
         run: |
           cd backend
           npm install
-          npm start &
+          npm start > server.log 2>&1 &
+          SERVER_PID=$!
+          echo "Backend PID: $SERVER_PID"
+          sleep 10
+          if kill -0 $SERVER_PID 2>/dev/null; then
+            echo "Backend process is running"
+            tail -20 server.log
+          else
+            echo "Backend process exited!"
+            cat server.log
+            exit 1
+          fi
 
       - name: Wait for backend server
         run: npx wait-on http://localhost:5000 --timeout 60000
