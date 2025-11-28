@@ -42,25 +42,81 @@ jobs:
         working-directory: frontend
 
       - name: Start backend server
-        run: npm start &
-        working-directory: backend
+        run: |
+          cd backend
+          npm install
+          nohup node server.js > server.log 2>&1 &
+          BACKEND_PID=$!
+          echo "Backend started with PID: $BACKEND_PID"
+          
+          # Wait 20 seconds for backend to start
+          sleep 20
+          
+          # Check if backend process is still alive
+          if ! kill -0 $BACKEND_PID 2>/dev/null; then
+            echo "❌ Backend process died!"
+            cat server.log
+            exit 1
+          fi
+          
+          echo "✅ Backend process is alive"
+          tail -20 server.log
+          
+          # Try to connect to port 5000
+          if curl -s http://localhost:5000 > /dev/null 2>&1; then
+            echo "✅ Backend is responding on port 5000!"
+          else
+            echo "⚠️  Backend not responding yet, but process is alive. Waiting..."
+            sleep 10
+            if curl -s http://localhost:5000 > /dev/null 2>&1; then
+              echo "✅ Backend is now responding!"
+            else
+              echo "❌ Backend still not responding after 30 seconds"
+              cat server.log
+              exit 1
+            fi
+          fi
         env:
-          DATABASE_URL: mongodb://localhost:27017/mindsphere
+          MONGO_URI: mongodb://localhost:27017/mindsphere
           JWT_SECRET: test-secret-key
+          GEMINI_API_KEY: AIzaSyALkpovxZo0VgJ2qQBJmr9vnkqtfvfFpA0
           NODE_ENV: test
-          AI_SERVICE_URL: http://localhost:5001
-
-      - name: Wait for backend server
-        run: npx wait-on http://localhost:5000 --timeout 30000
+          PORT: 5000
 
       - name: Start frontend server
-        run: npm run dev &
-        working-directory: frontend
+        run: |
+          cd frontend
+          nohup npm run dev > frontend.log 2>&1 &
+          FRONTEND_PID=$!
+          echo "Frontend started with PID: $FRONTEND_PID"
+          
+          # Wait 20 seconds for frontend to start
+          sleep 20
+          
+          # Check if frontend process is still alive
+          if ! kill -0 $FRONTEND_PID 2>/dev/null; then
+            echo "❌ Frontend process died!"
+            cat frontend.log
+            exit 1
+          fi
+          
+          echo "✅ Frontend process is alive"
+          tail -20 frontend.log
+          
+          # Try to connect to port 5173
+          if curl -s http://localhost:5173 > /dev/null 2>&1; then
+            echo "✅ Frontend is responding on port 5173!"
+          else
+            echo "⚠️  Frontend not responding yet, but process is alive. Waiting..."
+            sleep 10
+            if curl -s http://localhost:5173 > /dev/null 2>&1; then
+              echo "✅ Frontend is now responding!"
+            else
+              echo "⚠️  Frontend still not responding after 30 seconds, continuing with tests..."
+            fi
+          fi
         env:
           VITE_API_BASE_URL: http://localhost:5000
-
-      - name: Wait for frontend server
-        run: npx wait-on http://localhost:5173 --timeout 30000
 
       - name: Run Playwright tests
         run: npx playwright test
