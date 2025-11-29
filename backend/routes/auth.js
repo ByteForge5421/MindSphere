@@ -72,8 +72,15 @@ router.post(
         }
       );
     } catch (err) {
-      console.error(err.message);
-      res.status(500).send('Server error');
+      console.error('Registration error:', err);
+      
+      // Handle MongoDB duplicate key error
+      if (err.code === 11000) {
+        const field = Object.keys(err.keyPattern)[0];
+        return res.status(400).json({ message: `${field} already exists` });
+      }
+      
+      res.status(500).json({ message: 'Server error', error: err.message });
     }
   }
 );
@@ -140,8 +147,8 @@ router.post(
         }
       );
     } catch (err) {
-      console.error(err.message);
-      res.status(500).send('Server error');
+      console.error('Login error:', err);
+      res.status(500).json({ message: 'Server error', error: err.message });
     }
   }
 );
