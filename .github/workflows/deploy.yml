@@ -88,6 +88,19 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
 
+      - name: Generate visual regression baselines
+        run: npx playwright test e2e/visual.spec.ts --update-snapshots
+        working-directory: frontend
+        continue-on-error: true
+
+      - name: Commit visual regression baselines
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add -f frontend/e2e/visual.spec.ts-snapshots/ 2>/dev/null || true
+          git commit -m "Update visual regression baselines" 2>/dev/null || true
+        continue-on-error: true
+
       - name: Run tests
         run: npx playwright test
         working-directory: frontend

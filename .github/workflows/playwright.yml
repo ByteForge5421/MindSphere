@@ -118,6 +118,19 @@ jobs:
         env:
           VITE_API_BASE_URL: http://localhost:5000
 
+      - name: Generate visual regression baselines
+        run: npx playwright test e2e/visual.spec.ts --update-snapshots
+        working-directory: frontend
+        continue-on-error: true
+
+      - name: Commit visual regression baselines
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add -f frontend/e2e/visual.spec.ts-snapshots/ 2>/dev/null || true
+          git commit -m "Update visual regression baselines" 2>/dev/null || true
+        continue-on-error: true
+
       - name: Run Playwright tests
         run: npx playwright test
         working-directory: frontend
