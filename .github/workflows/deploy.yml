@@ -112,11 +112,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
       - name: Install dependencies
         run: npm install
 
+      - name: Install frontend dependencies
+        run: cd frontend && npm install
+
       - name: Build frontend
-        run: npm run build
+        run: cd frontend && npm run build
 
   deploy-staging:
     needs: build
