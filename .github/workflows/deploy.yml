@@ -156,10 +156,33 @@ jobs:
       - name: Install Playwright browsers
         run: cd frontend && npx playwright install --with-deps
 
+      - name: Build frontend for preview
+        run: cd frontend && npm run build
+
       - name: Run smoke tests against staging
         run: |
           cd frontend
-          E2E_BASE_URL=https://staging.yoursite.netlify.app npx playwright test e2e/smoke.spec.ts
+          # Start the preview server in background
+          nohup npm run preview > preview.log 2>&1 &
+          PREVIEW_PID=$!
+          echo "Preview server started with PID: $PREVIEW_PID"
+          
+          # Wait for preview server to start (port 4173)
+          sleep 5
+          for i in {1..30}; do
+            if curl -s http://localhost:4173 > /dev/null 2>&1; then
+              echo "Preview server is ready"
+              break
+            fi
+            echo "Waiting for preview server... ($i/30)"
+            sleep 1
+          done
+          
+          # Run smoke tests against local preview server
+          E2E_BASE_URL=http://localhost:4173 npx playwright test e2e/smoke.spec.ts
+          
+          # Kill preview server
+          kill $PREVIEW_PID 2>/dev/null || true
 
   deploy-production:
     needs: smoke-tests
