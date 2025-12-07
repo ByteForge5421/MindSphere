@@ -31,4 +31,6 @@ const JournalSchema = new mongoose.Schema({
   }
 });
 
+JournalSchema.index({ user: 1 });
+
 module.exports = mongoose.model('Journal', JournalSchema);

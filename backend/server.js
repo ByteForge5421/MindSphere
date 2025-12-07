@@ -106,8 +106,6 @@ app.use('/api/dashboard', aiLimiter, require('./routes/dashboard'));
 app.use('/api/community', require('./routes/community'));
 app.use('/api/tokens', require('./routes/tokens'));
 app.use("/api/plants",require('./routes/plants'));
-const groupRoutes = require("./routes/group.js");
-app.use("/api", groupRoutes);
 app.use('/api/mood', require('./routes/geminiMood'));
 app.use('/api/messages', require('./routes/messages'));
 

@@ -17,7 +17,7 @@ import { formatDistanceToNow } from "date-fns";
 import { Loader2, Search, BookOpen, Trash2 } from "lucide-react";
 
 interface JournalEntry {
-  id: string;
+  _id: string;
   title: string;
   content: string;
   createdAt: string;
@@ -61,13 +61,13 @@ export function JournalList() {
 
   const deleteEntry = async (id: string) => {
     try {
-      await api.delete(`/journal/entries/${id}`);
+      await api.delete(`/journal/${id}`);
       
       // Remove from state
-      setEntries(entries.filter(entry => entry.id !== id));
+      setEntries(entries.filter(entry => entry._id !== id));
       
       // Close dialog if open
-      if (selectedEntry?.id === id) {
+      if (selectedEntry?._id === id) {
         setIsEntryOpen(false);
       }
       
@@ -133,7 +133,7 @@ export function JournalList() {
             <div className="space-y-3">
               {filteredEntries.map((entry) => (
                 <div 
-                  key={entry.id} 
+                  key={entry._id} 
                   className="p-4 border rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
                   onClick={() => viewEntry(entry)}
                 >
@@ -184,7 +184,7 @@ export function JournalList() {
             <DialogFooter className="flex justify-between items-center mt-4">
               <Button
                 variant="destructive"
-                onClick={() => deleteEntry(selectedEntry.id)}
+                onClick={() => deleteEntry(selectedEntry._id)}
                 className="flex items-center"
               >
                 <Trash2 className="h-4 w-4 mr-1" />

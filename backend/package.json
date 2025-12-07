@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "zip": "bestzip ../backend.zip .",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "test": "jest --forceExit --detectOpenHandles --testTimeout=30000"
   },
   "dependencies": {
     "@google/genai": "^1.0.0",
@@ -28,6 +29,14 @@
     "socket.io": "^4.7.2"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
+    "@types/jest": "^30.0.0",
+    "jest": "^30.2.0",
+    "mongodb-memory-server": "^11.0.1",
+    "nodemon": "^3.1.10",
+    "supertest": "^7.2.2"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": ["**/tests/**/*.test.js"]
   }
 }

@@ -237,6 +237,10 @@ router.post('/seed', auth, async (req, res) => {
     if (!user) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
+
+    if (user.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
     
     const existingGroups = await Community.countDocuments();
     

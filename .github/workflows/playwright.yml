@@ -24,6 +24,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Scan for leaked secrets
+        run: |
+          echo "Scanning tracked files for hardcoded secrets..."
+          FOUND=$(grep -rEn 'AIza[A-Za-z0-9_-]{30,}|sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{36}|AKIA[A-Z0-9]{16}' \
+            --include='*.yml' --include='*.yaml' --include='*.js' --include='*.ts' \
+            --include='*.json' --include='*.env*' --include='*.md' . 2>/dev/null || true)
+          if [ -n "$FOUND" ]; then
+            echo "::error::Hardcoded secrets detected in tracked files!"
+            echo "$FOUND" | sed -E 's/(AIza.{4})[A-Za-z0-9_-]+([A-Za-z0-9_-]{4})/\1****\2/g'
+            exit 1
+          fi
+          echo "✅ No hardcoded secrets found."
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -79,7 +92,7 @@ jobs:
         env:
           MONGO_URI: mongodb://localhost:27017/mindsphere
           JWT_SECRET: test-secret-key
-          GEMINI_API_KEY: AIzaSyALkpovxZo0VgJ2qQBJmr9vnkqtfvfFpA0
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           NODE_ENV: test
           PORT: 5000
 

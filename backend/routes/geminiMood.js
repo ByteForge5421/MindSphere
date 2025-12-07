@@ -1,8 +1,21 @@
 const express = require("express");
 const router = express.Router();
+const rateLimit = require("express-rate-limit");
+const auth = require("../middleware/auth");
 const { getSuggestions } = require("../services/geminiService");
 
-router.post("/suggestions", async (req, res) => {
+const aiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many AI requests. Please try again later."
+  }
+});
+
+router.post("/suggestions", auth, aiLimiter, async (req, res) => {
   try {
     const { userInput } = req.body;
     if (!userInput) {

@@ -12,7 +12,6 @@ const { trackEvent } = require('../services/eventService');
 // @access  Private
 router.get('/', auth, async (req, res) => {
   try {
-    console.log('Authenticated user:', req.user);
     const journals = await Journal.find({ user: req.user.id })
       .sort({ createdAt: -1 });
     
@@ -71,7 +70,6 @@ router.post('/', auth, trackEventMiddleware("journal_created"), async (req, res)
 // Put this ABOVE the /:id route
 router.get('/entries', auth, async (req, res) => {
   const journals = await Journal.find({ user: req.user.id }).sort({ createdAt: -1 });
-  console.log(journals)
   res.json(journals);
 });
 
@@ -167,7 +165,7 @@ router.delete('/:id', auth, async (req, res) => {
     }
     
     // Delete journal
-    await Journal.findByIdAndRemove(req.params.id);
+    await Journal.findByIdAndDelete(req.params.id);
     
     res.json({ message: 'Journal entry removed' });
   } catch (err) {

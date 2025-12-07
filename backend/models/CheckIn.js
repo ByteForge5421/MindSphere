@@ -48,4 +48,6 @@ const CheckInSchema = new mongoose.Schema({
   }
 });
 
+CheckInSchema.index({ user: 1 });
+
 module.exports = mongoose.model('CheckIn', CheckInSchema);
