@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { body, validationResult } = require('express-validator');
 const auth = require('../middleware/auth');
 const { trackEventMiddleware } = require('../middleware/eventTracker');
 const Community = require('../models/Community');
@@ -46,13 +47,18 @@ router.get('/:id', auth, async (req, res) => {
 // @route   POST api/community
 // @desc    Create a new community group
 // @access  Private
-router.post('/', auth, async (req, res) => {
+router.post('/', auth, [
+  body('name').notEmpty().withMessage('Name is required').trim(),
+  body('description').notEmpty().withMessage('Description is required').trim(),
+  body('category').notEmpty().withMessage('Category is required').trim(),
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
   try {
     const { name, description, category } = req.body;
-    
-    if (!name || !description || !category) {
-      return res.status(400).json({ message: 'Please provide all required fields' });
-    }
     
     const newGroup = new Community({
       name,

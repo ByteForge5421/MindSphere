@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { body, validationResult } = require('express-validator');
 const auth = require('../middleware/auth');
 const { trackEventMiddleware } = require('../middleware/eventTracker');
 const CheckIn = require('../models/CheckIn');
@@ -9,7 +10,16 @@ const { trackEvent } = require('../services/eventService');
 // @route   POST api/mood/check-in
 // @desc    Save mood check-in (bina AI analysis ke)
 // @access  Private
-router.post('/check-in', auth, trackEventMiddleware('mood_logged'), async (req, res) => {
+router.post('/check-in', auth, [
+  body('moodScore').isInt({ min: 1, max: 10 }).withMessage('Mood score must be between 1 and 10'),
+  body('energyLevel').isInt({ min: 1, max: 10 }).withMessage('Energy level must be between 1 and 10'),
+  body('method').isIn(['voice', 'text']).withMessage('Method must be voice or text'),
+], trackEventMiddleware('mood_logged'), async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
   try {
     // Ab frontend se sirf ye data aa raha hai
     const { 
@@ -80,10 +90,17 @@ router.post('/check-in', auth, trackEventMiddleware('mood_logged'), async (req, 
 // @access  Private
 router.get('/history', auth, async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const total = await CheckIn.countDocuments({ user: req.user.id });
     const checkIns = await CheckIn.find({ user: req.user.id })
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
     
-    res.json(checkIns);
+    res.json({ data: checkIns, page, limit, total });
   } catch (err) {
     console.error('Error fetching mood history:', err);
     res.status(500).json({ message: 'Error fetching mood history' });

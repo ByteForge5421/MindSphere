@@ -41,7 +41,7 @@ export function JournalList() {
       setLoading(true);
       const response = await api.get('/journal/entries');
       console.log("Fetched entries:", response.data);
-      setEntries(response.data);
+      setEntries(response.data.data || response.data);
     } catch (error) {
       console.error('Error fetching journal entries:', error);
       toast({

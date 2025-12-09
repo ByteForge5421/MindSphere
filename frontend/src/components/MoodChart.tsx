@@ -30,10 +30,11 @@ export default function MoodChart() {
   const fetchMoodData = async (range: string) => {
     try {
       setLoading(true);
-      const response = await api.get(`/mood/history?range=${range}`);
+      const response = await api.get(`/mood/history?range=${range}&limit=100`);
       
+      const rawData = response.data.data || response.data;
       // map createdAt to date
-      const formatted = response.data.map((item: any) => ({
+      const formatted = rawData.map((item: any) => ({
         ...item,
         date: item.createdAt,   // 👈 recharts expects this
       }));

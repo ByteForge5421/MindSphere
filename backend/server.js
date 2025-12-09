@@ -9,6 +9,7 @@ const path = require('path');
 const multer = require('multer');
 const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
+const helmet = require('helmet');
 const Sentry = require('@sentry/node');
 const { initializeChatSocket } = require('./socket/chatSocket');
 const { startAnalyticsJob } = require('./jobs/analyticsJob');
@@ -66,6 +67,7 @@ app.options('*', cors(corsOptions));
 
 
 // Middleware
+app.use(helmet());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
