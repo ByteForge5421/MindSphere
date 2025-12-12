@@ -30,6 +30,7 @@ const OAuthCallbackPage = () => {
         name: searchParams.get("name") || "",
         email: searchParams.get("email") || "",
         role: searchParams.get("role") || "student",
+        createdAt: new Date().toISOString(),
         provider: searchParams.get("provider") || "local",
       };
 
