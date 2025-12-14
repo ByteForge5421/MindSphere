@@ -144,9 +144,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy to Netlify Staging
+      - name: Deploy to Vercel Staging
         run: |
-          curl -X POST ${{ secrets.NETLIFY_STAGING_DEPLOY_HOOK }}
+          curl -X POST ${{ secrets.VERCEL_STAGING_DEPLOY_HOOK }}
 
   smoke-tests:
     needs: deploy-staging
@@ -202,9 +202,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy to Netlify Production
+      - name: Deploy to Vercel Production
         run: |
-          curl -X POST ${{ secrets.NETLIFY_PROD_DEPLOY_HOOK }}
+          curl -X POST ${{ secrets.VERCEL_PROD_DEPLOY_HOOK }}
 
       - name: Deploy backend to Render
         run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }}
