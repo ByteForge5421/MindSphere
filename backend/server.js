@@ -41,6 +41,7 @@ if (process.env.SENTRY_DSN) {
 
 // 1. Create a list of all websites you want to allow
 const allowedOrigins = [
+  'https://mindsphere-hub.vercel.app',
   'https://mindsphere-ai.netlify.app',
   'http://localhost:3000',                     // For local testing (change port if needed, e.g., 5173 for Vite)
   'http://localhost:8080'                      // Common port for Vite projects
