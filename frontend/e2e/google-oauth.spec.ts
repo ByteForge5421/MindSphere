@@ -2,21 +2,14 @@ import { test, expect } from '@playwright/test';
 
 const BACKEND_URL = 'http://localhost:5000';
 
-// Tests that require real Google OAuth credentials — skip in CI
-const oauthTest = test.extend({});
-oauthTest.beforeEach(async ({ page }) => {
-  // Check if the backend has Google OAuth configured by hitting the route
-  const response = await page.request.get(`${BACKEND_URL}/api/auth/google`, {
-    maxRedirects: 0,
-  }).catch(() => null);
-  const location = response?.headers()['location'] || '';
-  if (!location.includes('accounts.google.com')) {
-    test.skip(true, 'Google OAuth credentials not configured — skipping');
-  }
-});
+// These tests require a running backend with valid Google OAuth credentials.
+// Run with: RUN_OAUTH_TESTS=true npx playwright test e2e/google-oauth.spec.ts
+const SKIP_OAUTH = !process.env.RUN_OAUTH_TESTS;
 
 test.describe('Google OAuth Flow', () => {
-  oauthTest('redirects to Google accounts login page', async ({ page }) => {
+  test('redirects to Google accounts login page', async ({ page }) => {
+    test.skip(SKIP_OAUTH, 'Set RUN_OAUTH_TESTS=true to run Google OAuth tests');
+
     // Step 1: Navigate to the backend Google OAuth endpoint
     await page.goto(`${BACKEND_URL}/api/auth/google`, {
       waitUntil: 'domcontentloaded',
@@ -45,7 +38,8 @@ test.describe('Google OAuth Flow', () => {
     console.log('✅ Step 1-3 PASSED: Backend redirected to Google OAuth consent screen');
   });
 
-  oauthTest('Google login page shows email input', async ({ page }) => {
+  test('Google login page shows email input', async ({ page }) => {
+    test.skip(SKIP_OAUTH, 'Set RUN_OAUTH_TESTS=true to run Google OAuth tests');
     // Navigate to Google OAuth
     await page.goto(`${BACKEND_URL}/api/auth/google`, {
       waitUntil: 'domcontentloaded',
@@ -67,7 +61,8 @@ test.describe('Google OAuth Flow', () => {
     console.log('✅ Step 4 PASSED: Google login page is displayed');
   });
 
-  oauthTest('callback URL is correctly configured', async ({ page }) => {
+  test('callback URL is correctly configured', async ({ page }) => {
+    test.skip(SKIP_OAUTH, 'Set RUN_OAUTH_TESTS=true to run Google OAuth tests');
     // Navigate to Google OAuth and inspect the redirect_uri parameter
     await page.goto(`${BACKEND_URL}/api/auth/google`, {
       waitUntil: 'domcontentloaded',
