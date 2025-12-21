@@ -6,7 +6,9 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "concurrently \"npm run dev --prefix frontend\" \"npm run dev --prefix backend\"",
     "zip:backend": "bestzip backend_deploy.zip backend/*",
-    "lhci": "lhci autorun"
+    "lhci": "lhci autorun",
+    "test:prod": "npx playwright test --config tests/prod/playwright.config.ts --headed",
+    "test:prod:ci": "npx playwright test --config tests/prod/playwright.config.ts"
   },
   "author": "",
   "license": "ISC",
