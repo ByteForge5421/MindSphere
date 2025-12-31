@@ -1,16 +1,16 @@
-# 🧠 MindSphere — AI-Powered Mental Wellness Platform
+## 🧠 MindSphere — AI-Powered Mental Wellness Platform
 
 > A production-grade, full-stack mental wellness application featuring AI-driven mood analysis, OAuth authentication, real-time community chat, gamified self-care, and comprehensive E2E testing — deployed live on Vercel + Render.
 
-[![Live Site](https://img.shields.io/badge/Live-mindsphere--hub.vercel.app-00C853?logo=vercel)](https://mindsphere-hub.vercel.app)
-[![Backend API](https://img.shields.io/badge/API-Render-4351e8?logo=render)](https://mindsphere-backend-9c0u.onrender.com/health)
-[![CI/CD Pipeline](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2088FF?logo=github-actions)](https://github.com/)
-[![Backend](https://img.shields.io/badge/Backend-Node.js%20%2B%20Express-339933?logo=node.js)](https://nodejs.org/)
-[![Frontend](https://img.shields.io/badge/Frontend-React%20%2B%20TypeScript-61DAFB?logo=react)](https://react.dev/)
-[![Database](https://img.shields.io/badge/Database-MongoDB-47A248?logo=mongodb)](https://www.mongodb.com/)
-[![AI](https://img.shields.io/badge/AI-Google%20Gemini-4285F4?logo=google)](https://ai.google.dev/)
-[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker)](https://www.docker.com/)
-[![Tests](https://img.shields.io/badge/Tests-57%2B%20Files-brightgreen?logo=playwright)](https://playwright.dev/)
+<p align="center">
+  <a href="https://mindsphere-hub.vercel.app"><img src="https://img.shields.io/badge/Live%20Demo-000?style=for-the-badge&logo=vercel&logoColor=white" /></a>
+  <a href="https://mindsphere-backend-9c0u.onrender.com/health"><img src="https://img.shields.io/badge/API-4351e8?style=for-the-badge&logo=render&logoColor=white" /></a>
+  <a href="https://github.com/ByteForge24/MindSphere/actions"><img src="https://img.shields.io/badge/CI%2FCD-2088FF?style=for-the-badge&logo=githubactions&logoColor=white" /></a>
+</p>
+
+<p align="center">
+  <img src="https://skillicons.dev/icons?i=react,ts,vite,tailwind,nodejs,express,mongodb,docker&theme=dark" />
+</p>
 
 ---
 

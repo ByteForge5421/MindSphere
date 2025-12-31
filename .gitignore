@@ -35,3 +35,21 @@ yarn-error.log*
 # OS-specific files
 .DS_Store
 Thumbs.db
+
+# Zip archives
+*.zip
+
+# Test artifacts
+/test-results/
+/frontend/test-results/
+/frontend/playwright-report/
+
+# Extracted/temp folders
+/test_extract/
+
+# Uploads (user-generated)
+/uploads/
+/backend/uploads/audio/*.webm
+
+# Setup docs (not needed in repo)
+SENTRY_SETUP.md
