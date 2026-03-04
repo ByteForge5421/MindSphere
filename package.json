@@ -1,0 +1,23 @@
+{
+  "name": "MindSphere",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "concurrently \"npm run dev --prefix frontend\" \"npm run dev --prefix backend\"",
+    "zip:backend": "bestzip backend_deploy.zip backend/*"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "concurrently": "^9.1.2",
+    "dotenv": "^17.2.2",
+    "framer-motion": "^12.6.3"
+  },
+  "devDependencies": {
+    "bestzip": "^2.2.1"
+  }
+}
+

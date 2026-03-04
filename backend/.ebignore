@@ -1,0 +1,8 @@
+# Ignore uploads and heavy/local stuff
+uploads/*
+node_modules/*
+npm-debug.log
+*.zip
+.git
+.gitignore
+.DS_Store
