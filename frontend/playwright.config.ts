@@ -4,14 +4,13 @@ export default defineConfig({
   testDir: './e2e',
 
   use: {
-    baseURL: 'http://localhost:8081',
+    baseURL: 'http://localhost:8080',
     headless: true,
-    storageState: 'playwright/.auth/user.json',
   },
 
   webServer: {
     command: 'npm run dev',
-    url: 'http://localhost:8081',
+    url: 'http://localhost:8080',
     reuseExistingServer: !process.env.CI,
   },
 
@@ -23,7 +22,10 @@ export default defineConfig({
     },
     {
       name: 'chromium',
-      use: { browserName: 'chromium' },
+      use: {
+        browserName: 'chromium',
+        storageState: 'playwright/.auth/user.json',
+      },
       dependencies: ['setup'],
     },
   ],
