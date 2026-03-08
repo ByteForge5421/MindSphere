@@ -2,8 +2,10 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
+const { trackEventMiddleware } = require('../middleware/eventTracker');
 const Journal = require('../models/Journal');
 const axios = require('axios');
+const { trackEvent } = require('../services/eventService');
 
 // @route   GET api/journal
 // @desc    Get user's journal entries
@@ -24,7 +26,7 @@ router.get('/', auth, async (req, res) => {
 // @route   POST api/journal
 // @desc    Create a new journal entry
 // @access  Private
-router.post('/', auth, async (req, res) => {
+router.post('/', auth, trackEventMiddleware("journal_created"), async (req, res) => {
   try {
     const { title, content, isPrivate, tags } = req.body;
     
@@ -52,6 +54,11 @@ router.post('/', auth, async (req, res) => {
     });
     
     const journal = await newJournal.save();
+    
+    // Track analytics event for journal created
+    await trackEvent(req.user.id.toString(), 'journal_created', {
+      wordCount: content.split(' ').length
+    });
     
     res.json(journal);
   } catch (err) {

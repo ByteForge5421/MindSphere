@@ -1,8 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
+const { trackEventMiddleware } = require('../middleware/eventTracker');
 const Community = require('../models/Community');
 const User = require('../models/User');
+const Message = require('../models/Message');
+const { trackEvent } = require('../services/eventService');
 // const Token = require('../models/Token'); // Removed
 
 // @route   GET api/community
@@ -22,13 +25,12 @@ router.get('/', auth, async (req, res) => {
 });
 
 // @route   GET api/community/:id
-// @desc    Get a specific community group
+// @desc    Get a specific community group (metadata only, no messages)
 // @access  Private
 router.get('/:id', auth, async (req, res) => {
   try {
     const group = await Community.findById(req.params.id)
-      .populate('members', 'name profilePicture')
-      .populate('messages.user', 'name profilePicture');
+      .populate('members', 'name profilePicture');
     
     if (!group) {
       return res.status(404).json({ message: 'Group not found' });
@@ -76,7 +78,7 @@ router.post('/', auth, async (req, res) => {
 // @route   POST api/community/:id/join
 // @desc    Join a community group
 // @access  Private
-router.post('/:id/join', auth, async (req, res) => {
+router.post('/:id/join', auth, trackEventMiddleware('community_joined'), async (req, res) => {
   try {
     const group = await Community.findById(req.params.id);
     
@@ -91,9 +93,13 @@ router.post('/:id/join', auth, async (req, res) => {
     group.members.push(req.user.id);
     await group.save();
     
+    // Track analytics event for community join
+    await trackEvent(req.user.id.toString(), 'community_joined', {
+      communityId: req.params.id
+    });
+    
     const populatedGroup = await Community.findById(group._id)
-      .populate('members', 'name profilePicture')
-      .populate('messages.user', 'name profilePicture');
+      .populate('members', 'name profilePicture');
     
     res.json(populatedGroup);
   } catch (err) {
@@ -134,7 +140,7 @@ router.post('/:id/leave', auth, async (req, res) => {
 });
 
 // @route   POST api/community/:id/message
-// @desc    Post a message to a community group
+// @desc    Post a message to a community group (DEPRECATED: use POST /api/messages instead)
 // @access  Private
 router.post('/:id/message', auth, async (req, res) => {
   try {
@@ -154,21 +160,32 @@ router.post('/:id/message', auth, async (req, res) => {
       return res.status(403).json({ message: 'Must be a member to post messages' });
     }
     
-    group.messages.push({
-      user: req.user.id,
+    // Create message in Message collection instead of embedding
+    const newMessage = new Message({
+      communityId: req.params.id,
+      senderId: req.user.id,
       content
     });
     
-    await group.save();
+    const message = await newMessage.save();
     
-    const updatedGroup = await Community.findById(req.params.id)
-      .populate('messages.user', 'name profilePicture');
+    // Populate sender info for response (matches frontend expectations)
+    const populatedMessage = await Message.findById(message._id)
+      .populate('senderId', 'name profilePicture');
     
-    const newMessage = updatedGroup.messages[updatedGroup.messages.length - 1];
+    // Transform response to match frontend message structure (user instead of senderId)
+    const responseMessage = {
+      _id: populatedMessage._id,
+      content: populatedMessage.content,
+      createdAt: populatedMessage.createdAt,
+      user: {
+        _id: populatedMessage.senderId._id,
+        name: populatedMessage.senderId.name,
+        profilePicture: populatedMessage.senderId.profilePicture
+      }
+    };
     
-    // --- Token awarding logic removed ---
-    
-    res.json(newMessage);
+    res.json(responseMessage);
   } catch (err) {
     console.error('Error posting message:', err);
     res.status(500).json({ message: 'Error posting message' });
@@ -176,21 +193,34 @@ router.post('/:id/message', auth, async (req, res) => {
 });
 
 // @route   GET api/community/:id/messages
-// @desc    Get messages from a community group
+// @desc    Get messages from a community group (DEPRECATED: use GET /api/messages/:communityId instead)
 // @access  Private
 router.get('/:id/messages', auth, async (req, res) => {
   try {
-    const group = await Community.findById(req.params.id)
-      .populate({
-        path: 'messages.user',
-        select: 'name profilePicture'
-      });
+    const group = await Community.findById(req.params.id);
     
     if (!group) {
       return res.status(404).json({ message: 'Group not found' });
     }
     
-    res.json(group.messages);
+    // Fetch messages from Message collection
+    const messages = await Message.find({ communityId: req.params.id })
+      .populate('senderId', 'name profilePicture')
+      .sort({ createdAt: 1 });
+    
+    // Transform response to match frontend message structure
+    const transformedMessages = messages.map(msg => ({
+      _id: msg._id,
+      content: msg.content,
+      createdAt: msg.createdAt,
+      user: {
+        _id: msg.senderId._id,
+        name: msg.senderId.name,
+        profilePicture: msg.senderId.profilePicture
+      }
+    }));
+    
+    res.json(transformedMessages);
   } catch (err) {
     console.error('Error fetching messages:', err);
     res.status(500).json({ message: 'Error fetching messages' });

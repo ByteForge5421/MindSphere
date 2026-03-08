@@ -2,6 +2,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";
+import { connectSocket, disconnectSocket } from "@/services/socket";
 
 interface User {
   id: string;
@@ -89,6 +90,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem("token", authToken);
       setToken(authToken);
       setUser(userData);
+      
+      // Initialize socket connection with token
+      try {
+        connectSocket(authToken);
+      } catch (socketError) {
+        console.error("Socket connection error:", socketError);
+      }
+      
       toast({
         title: "Welcome back!",
         description: `Logged in as ${userData.name}`,
@@ -135,6 +144,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem("token", authToken);
       setToken(authToken);
       setUser(userData);
+      
+      // Initialize socket connection with token
+      try {
+        connectSocket(authToken);
+      } catch (socketError) {
+        console.error("Socket connection error:", socketError);
+      }
+      
       toast({
         title: "Registration successful!",
         description: "Your account has been created.",
@@ -156,6 +173,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem("token");
     setUser(null);
     setToken(null);
+    
+    // Disconnect socket when logging out
+    try {
+      disconnectSocket();
+    } catch (socketError) {
+      console.error("Socket disconnection error:", socketError);
+    }
+    
     toast({
       title: "Logged out",
       description: "You have been successfully logged out.",

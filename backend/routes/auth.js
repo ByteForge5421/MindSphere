@@ -5,6 +5,7 @@ const { body, validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const { trackEvent } = require('../services/eventService');
 
 // @route   POST api/auth/register
 // @desc    Register a user
@@ -122,6 +123,10 @@ router.post(
         { expiresIn: '7d' },
         (err, token) => {
           if (err) throw err;
+          
+          // Track login event
+          trackEvent(user._id.toString(), "user_login");
+          
           res.json({ 
             token,
             user: {
