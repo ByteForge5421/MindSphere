@@ -2,6 +2,7 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
+  workers: 1, // Run tests serially to ensure authentication persists correctly
 
   use: {
     baseURL: 'http://localhost:8080',

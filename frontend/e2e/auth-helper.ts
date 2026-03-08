@@ -88,13 +88,14 @@ export async function loginTestUser(page: Page, credentials = testCredentials) {
  * Ensure test user is authenticated before running tests
  */
 export async function ensureAuthenticated(page: Page) {
-  // First try navigating to a protected page
+  // First, try to navigate to a protected page
   await page.goto('/journal', { waitUntil: 'networkidle' });
 
-  // If we're redirected to login, authenticate via API
+  // Check if we were redirected to login (indicates no valid token)
   if (page.url().includes('/login')) {
+    // We need to login
     await loginTestUser(page);
-    // Reload the page now that we have a token
+    // Now navigate back to journal with the token
     await page.goto('/journal', { waitUntil: 'networkidle' });
   }
 }
