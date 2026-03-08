@@ -12,21 +12,15 @@ export default defineConfig({
     command: 'npm run dev',
     url: 'http://localhost:8080',
     reuseExistingServer: !process.env.CI,
+    cwd: '.',
   },
 
   projects: [
     {
-      name: 'setup',
-      testMatch: '**/auth.setup.ts',
-      use: { browserName: 'chromium' },
-    },
-    {
       name: 'chromium',
       use: {
         browserName: 'chromium',
-        storageState: 'playwright/.auth/user.json',
       },
-      dependencies: ['setup'],
     },
   ],
 });
